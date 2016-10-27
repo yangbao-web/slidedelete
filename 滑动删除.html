@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>滑动删除实例</title>
+  <style>
+    body{
+	  margin:0;
+	  box-sizing:border-box;
+	}
+    #div{
+	  background:#584556
+	}
+	.item{
+	  overflow:hidden;
+	}
+    .item-content{
+	  box-sizing:border-box;
+	  width:100%;
+	  height:30px;
+	  border:1px solid #ececec;
+	  text-align:center;
+	  line-height:30px;
+	  color:#ececec;
+	  float:left;
+	  position:relative;
+	}
+	.item-delete{
+	  float:left;
+	  color:#ffffff;
+	  text-align:center;
+	  background:#f04847;
+	  height:30px;
+	  line-height:30px;
+	  width:50px;
+	  margin-left:-50px;
+	  position:relative;
+	}
+  </style>
+</head>
+<body class="zh-cn">
+  <div id="div" style="width:100%;height:500px">
+	<div class="item">
+	  <div style="left:0" class="item-content">滑动删除1</div>
+	  <div style="left:50px" class="item-delete">删除1</div>
+	</div>
+	<div class="item">
+	  <div style="left:0" class="item-content">滑动删除2</div>
+	  <div style="left:50px" class="item-delete">删除2</div>
+	</div>
+    <div class="item">
+	  <div style="left:0" class="item-content">滑动删除3</div>
+	  <div style="left:50px" class="item-delete">删除3</div>
+	</div>
+  </div>
+</body>
+  <script>
+    var container = document.getElementById("div");
+	var itemDelete = document.getElementsByClassName("item-delete");
+	
+    container.addEventListener("mousedown",mousedown,false);
+	document.addEventListener("mouseup",mouseup,false);
+	
+    var pointX = null;//鼠标点击相对于当前窗口的水平坐标
+	var pointY = null;//鼠标点击相对于当前窗口的垂直坐标
+	var offsetPosition = null;//滑块的初始位置[内容部门/删除部分]
+	var itemStatus = "close";//滑块状态[默认为关闭状态]
+	var moveItemContent = null;//滑块内容部分句柄
+	var moveItemDelete = null;//滑块删除部分句柄
+	var preItem = null;//存放上一次打开状态的滑块
+	var deleteWidth = itemDelete && itemDelete[0].offsetWidth;//滑块删除部分的宽度
+	
+	//鼠标按下事件
+    function mousedown(e){
+	  e.stopPropagation();
+	  e.preventDefault();
+	  if(e.target.classList.contains("item-content")){
+	    if(preItem && e.target != preItem.moveItemContent){
+	      preItem.moveItemContent.style.left = 0 + "px";
+		  preItem.moveItemDelete.style.left = deleteWidth + "px";
+		  preItem = null;
+		  itemStatus = "close";
+	    }else{
+		  moveItemContent = e.target;
+		  moveItemDelete = e.target.nextElementSibling;
+	      pointX = e.clientX;
+	      pointY = e.clientY;
+		  offsetPosition = {
+		    cLeft: parseFloat(moveItemContent.style.left),
+		    dLeft: parseFloat(moveItemDelete.style.left),
+		  }
+		  startMove();
+		};
+	  }else if(e.target.classList.contains("item-delete")){
+		moveItemDelete = e.target;
+		moveItemContent = e.target.previousElementSibling;
+		pointX = e.clientX;
+	    pointY = e.clientY;
+		offsetPosition = {
+		  cLeft: parseFloat(moveItemContent.style.left),
+		  dLeft: parseFloat(moveItemDelete.style.left),
+		}
+		startMove();
+	  }
+	}
+	
+	function startMove(){
+	  container.addEventListener("mousemove",mousemove,false);
+	}
+	//鼠标滑动事件
+	function mousemove(e){
+	  if(moveItemContent && pointX && pointY && offsetPosition){
+	    var contentLeft = offsetPosition.cLeft + e.clientX - pointX;//滑块内容部分的滑动位置
+		var deleteLedt = offsetPosition.dLeft + e.clientX - pointX;//滑块删除部分的滑动位置
+		if(contentLeft <= -deleteWidth){
+		  moveItemContent.style.left = -deleteWidth + "px";
+		  moveItemDelete.style.left = 0 + "px";
+		}else if(contentLeft >= 0){
+		  moveItemContent.style.left = 0 + "px";
+		  moveItemDelete.style.left = deleteWidth + "px";
+		}else{
+		  moveItemContent.style.left = contentLeft + "px";
+		  moveItemDelete.style.left = deleteLedt + "px";
+		}
+	  }
+	}
+	//鼠标抬起事件
+	function mouseup(e){
+	  container.removeEventListener("mousemove",mousemove,false);
+	  if(moveItemContent && pointX && pointY && offsetPosition){
+	    var moveWidth = e.clientX - pointX;
+	    if(itemStatus == "close"){
+		  if(moveWidth > -25){
+		    close();
+		  }else{
+		    open();
+		  }
+	    }else if(itemStatus == "open"){
+	      if(moveWidth >= 25 || moveWidth == 0){
+		    close();
+		  }else{
+		    open();
+		  }
+	    }
+	    pointX = null;
+	    pointY = null;
+	    offsetPosition = null;
+	    moveItemContent = null;
+		moveItemDelete = null;
+	  }
+	}
+	//打开滑块
+	function open(){
+	  moveItemContent.style.left = -deleteWidth + "px";
+		    moveItemDelete.style.left = 0 + "px";
+		    preItem = {
+		      moveItemContent: moveItemContent,
+		      moveItemDelete: moveItemDelete
+		    }
+		    itemStatus = "open";
+	}
+	//关闭滑块
+	function close(){
+	  moveItemContent.style.left = 0 + "px";
+		    moveItemDelete.style.left = deleteWidth + "px";
+		    preItem = null;//关闭滑块后需要清空打开状态的滑块数据
+		    itemStatus = "close";
+	}
+	container.addEventListener("click",function(e){
+	  if(e.target.classList.contains("item-delete")){
+	    e.target.parentElement.remove();
+		preItem = null;
+		itemStatus = "close";
+	  }
+	},false);
+	
+  </script>
+</html>
